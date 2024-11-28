@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+info() { echo -e "\e[92m[$HOSTNAME] $*\e[0m"; }
+
+# Set some SSH options to ignore host key errors and make logging quieter.
+# This is a bad idea in general, but here is used to faciliate comms with
+# a brand new VM each time.
+SSH_OPTS=(
+    -o "UserKnownHostsFile=/dev/null"
+    -o "StrictHostKeyChecking=no"
+    -o "LogLevel=ERROR"
+)
+
+info "Running k6test against $1"
+benchvm-exec k6test "$1"
+
+info "Collecting results files"
+sshpass -ppassword scp -P 2222 "${SSH_OPTS[@]}" root@localhost:summary.json "summary-${1}.json"
+sshpass -ppassword scp -P 2222 "${SSH_OPTS[@]}" root@localhost:summary.html "summary-${1}.html"
+sshpass -ppassword scp -P 2222 "${SSH_OPTS[@]}" root@localhost:summary.txt "summary-${1}.txt"
+
+info "Results available in summary-${1}.txt, summary-${1}.json and summary-${1}.html"

@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+info() { echo -e "\e[92m[$HOSTNAME] $*\e[0m"; }
+
+usage() {
+    echo "Usage: $0 <jnsgruk-go|jnsgruk-go-old|jnsgruk-rust>"
+    exit 1
+}
+
+# Validate the arguments to the command are expected
+[[ -n "${1:-}" ]] || usage
+[[ ("$1" == "jnsgruk-go" || "$1" == "jnsgruk-go-old" || "$1" == "jnsgruk-rust") ]] || usage
+
+info "Stopping any existing server instances"
+systemctl stop jnsgruk-go jnsgruk-go-old jnsgruk-rust
+
+info "Starting $1"
+systemctl start $1
+
+while ! nc -vw1 localhost 8080 &>/dev/null; do
+    sleep 1
+done
+
+info "Crawling URLs"
+echo "http://localhost:8080" \
+    | cariddi -plain \
+    | sort | uniq | cut -d"/" -f4- \
+    | jq -r -nR '[inputs | select(length>0)]' > paths.json
+
+info "Fetching redirects map"
+curl -s "https://gist.githubusercontent.com/jnsgruk/b590f114af1b041eeeab3e7f6e9851b7/raw" \
+    | cut -d" " -f1 \
+    | jq -r -nR '[inputs | select(length>0)]' > redirects.json
+
+info "Running k6"
+cat "$K6TEST_SCRIPT" | k6 run -q --log-output=none -

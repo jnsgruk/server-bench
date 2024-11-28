@@ -1,0 +1,7 @@
+/result*
+*.qcow2
+summary*txt
+summary*html
+summary*json
+paths.json
+redirects.json
