@@ -105,6 +105,16 @@
               stdenv
               ;
           };
+
+          # A continuous profiling agent.
+          parca-agent = pkgs.callPackage ./parca/parca-agent.nix {
+            inherit
+              buildGoModule
+              fetchFromGitHub
+              lib
+              stdenv
+              ;
+          };
         }
       );
 
@@ -144,6 +154,7 @@
                 benchvm-test
                 k6test
                 parca
+                parca-agent
               ]);
           };
         }
